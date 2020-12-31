@@ -60,13 +60,16 @@ fn parse_type(
         "container" => parse_container(args, parsed_types)
             .map(Type::Container)
             .with_context("container"),
+
         "switch" => parse_switch(args, parsed_types)
             .map(Type::Switch)
             .with_context("switch"),
+
         "bitflags" => todo!(),
         "pstring" => todo!(),
         "collection" => todo!(),
         "mapping" => todo!(),
+
         _ => Err(ParseError::unknown_function(function_name)),
     }
 }
@@ -82,8 +85,10 @@ fn parse_container(
 
     let mut fields = Vec::new();
 
-    for (_i, arg) in raw_fields.iter().enumerate() {
-        let field = parse_field(arg, parsed_types).with_context("field")?;
+    for (i, arg) in raw_fields.iter().enumerate() {
+        let field = parse_field(arg, parsed_types)
+            .with_context("field")
+            .with_context(i)?;
         fields.push(field);
     }
 
@@ -99,11 +104,7 @@ fn parse_field(
     let ty = value.lookup("type")?;
     let ty = parse_type(ty, parsed_types).with_context("type")?;
 
-    let name = value
-        .lookup("name")?
-        .expect_string()
-        .with_context("name")?
-        .clone();
+    let name = value.lookup_string("name")?.clone();
 
     Ok(Field { name, ty })
 }
@@ -123,19 +124,11 @@ fn parse_switch(
     //   }
     let args = args[0].expect_object()?;
 
-    let compare_to = args
-        .lookup("compareTo")?
-        .expect_string()
-        .with_context("compareTo")?
-        .clone();
+    let compare_to = args.lookup_string("compareTo")?.clone();
 
     let mut variants = IndexMap::new();
 
-    for (key, value) in args
-        .lookup("fields")?
-        .expect_object()
-        .with_context("fields")?
-    {
+    for (key, value) in args.lookup_object("fields")? {
         let ty = parse_type(value, parsed_types)
             .with_context("fields")
             .with_context(key)?;

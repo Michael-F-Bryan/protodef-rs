@@ -67,13 +67,13 @@ pub enum ErrorKind {
 }
 
 pub(crate) trait ResultExt<T> {
-    fn with_context(self, context: impl Into<String>) -> Result<T, ParseError>;
+    fn with_context(self, context: impl Display) -> Result<T, ParseError>;
 }
 
 impl<T> ResultExt<T> for Result<T, ParseError> {
-    fn with_context(self, context: impl Into<String>) -> Result<T, ParseError> {
+    fn with_context(self, context: impl Display) -> Result<T, ParseError> {
         self.map_err(|mut e| {
-            e.context.insert(0, context.into());
+            e.context.insert(0, context.to_string());
             e
         })
     }
@@ -142,18 +142,34 @@ impl<T> OptionExt<T> for Option<T> {
     }
 }
 
-pub(crate) trait Lookup<T, K> {
+pub(crate) trait Lookup<K> {
     #[track_caller]
-    fn lookup(&self, key: K) -> Result<&T, ParseError>;
+    fn lookup(&self, key: K) -> Result<&Value, ParseError>;
+
+    #[track_caller]
+    fn lookup_string(&self, key: K) -> Result<&String, ParseError>
+    where
+        K: Copy + Display,
+    {
+        self.lookup(key)?.expect_string().with_context(key)
+    }
+
+    #[track_caller]
+    fn lookup_object(&self, key: K) -> Result<&Map<String, Value>, ParseError>
+    where
+        K: Copy + Display,
+    {
+        self.lookup(key)?.expect_object().with_context(key)
+    }
 }
 
-impl<'a> Lookup<Value, &'a str> for Map<String, Value> {
+impl<'a> Lookup<&'a str> for Map<String, Value> {
     fn lookup(&self, key: &'a str) -> Result<&Value, ParseError> {
         self.get(key).or_missing_field(key)
     }
 }
 
-impl Lookup<Value, usize> for Vec<Value> {
+impl Lookup<usize> for Vec<Value> {
     fn lookup(&self, key: usize) -> Result<&Value, ParseError> {
         self.get(key).or_missing_field(key)
     }
