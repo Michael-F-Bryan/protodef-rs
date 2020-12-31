@@ -61,6 +61,7 @@ pub enum ErrorKind {
     MissingField {
         name: String,
     },
+    ParseInt(std::num::ParseIntError),
 }
 
 pub(crate) trait ResultExt<T> {

@@ -36,7 +36,12 @@ impl Field {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Switch;
+pub struct Switch {
+    pub compare_to: String,
+    pub variants: IndexMap<i64, Type>,
+    pub default: Option<Box<Type>>,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct BitFlags;
 #[derive(Debug, Clone, PartialEq)]

@@ -1,6 +1,6 @@
 use super::{
     errors::{OptionExt, ResultExt, ValueExt},
-    Container, Field, ParseError, Protocol, Type,
+    Container, ErrorKind, Field, ParseError, Protocol, Switch, Type,
 };
 use indexmap::IndexMap;
 use serde_json::{Map, Value};
@@ -60,7 +60,9 @@ fn parse_type(
         "container" => parse_container(args, parsed_types)
             .map(Type::Container)
             .with_context("container"),
-        "switch" => todo!(),
+        "switch" => parse_switch(args, parsed_types)
+            .map(Type::Switch)
+            .with_context("switch"),
         "bitflags" => todo!(),
         "pstring" => todo!(),
         "collection" => todo!(),
@@ -107,20 +109,77 @@ fn parse_field(
     Ok(Field { name, ty })
 }
 
+fn parse_switch(
+    args: &[Value],
+    parsed_types: &mut IndexMap<String, Type>,
+) -> Result<Switch, ParseError> {
+    if args.is_empty() {
+        todo!();
+    }
+
+    //   {
+    //     "compareTo": "blockId",
+    //     "fields": {"-1": "void"},
+    //     "default": ["container", []]
+    //   }
+    let args = args[0].expect_object()?;
+
+    let compare_to = args
+        .get("compareTo")
+        .or_missing_field("compareTo")?
+        .expect_string()
+        .with_context("compareTo")?
+        .clone();
+
+    let mut variants = IndexMap::new();
+
+    for (key, value) in args
+        .get("fields")
+        .or_missing_field("fields")
+        .and_then(|f| f.expect_object())
+        .with_context("fields")?
+    {
+        let ty = parse_type(value, parsed_types)
+            .with_context("fields")
+            .with_context(key)?;
+        let key = key
+            .parse::<i64>()
+            .map_err(|e| ParseError::new(ErrorKind::ParseInt(e)))?;
+
+        variants.insert(key, ty);
+    }
+
+    let default = match args.get("default") {
+        Some(d) => {
+            let default =
+                parse_type(d, parsed_types).with_context("default")?;
+            Some(Box::new(default))
+        },
+        None => None,
+    };
+
+    Ok(Switch {
+        compare_to,
+        variants,
+        default,
+    })
+}
+
 #[cfg(test)]
 mod tests {
+    use crate::syntax::Switch;
 
     use super::*;
-    use serde_json::json;
 
     #[test]
     fn parse_native() {
         let doc = json!("native");
         let mut parsed_types = IndexMap::default();
+        let should_be = Type::Native;
 
-        let should_be = parse_type(&doc, &mut parsed_types).unwrap();
+        let got = parse_type(&doc, &mut parsed_types).unwrap();
 
-        assert_eq!(should_be, Type::Native);
+        assert_eq!(got, should_be);
     }
 
     #[test]
@@ -131,7 +190,7 @@ mod tests {
 
         let got = parse_type(&doc, &mut parsed_types).unwrap();
 
-        assert_eq!(should_be, should_be);
+        assert_eq!(got, should_be);
     }
 
     #[test]
@@ -162,6 +221,74 @@ mod tests {
             ]
             .into_iter()
             .collect(),
+        });
+
+        let got = parse_type(&doc, &mut parsed_types).unwrap();
+
+        assert_eq!(got, should_be);
+    }
+
+    #[test]
+    #[ignore]
+    fn parse_mapper() {
+        let doc = json! {[
+          "mapper",
+          {
+            "type": "varint",
+            "mappings": {
+              "0x00": "keep_alive",
+              "0x01": "chat",
+              "0x02": "use_entity",
+              "0x03": "flying",
+              "0x04": "position",
+              "0x05": "look",
+              "0x06": "position_look",
+              "0x07": "block_dig",
+              "0x08": "block_place",
+              "0x09": "held_item_slot",
+              "0x0a": "arm_animation",
+              "0x0b": "entity_action",
+              "0x0c": "steer_vehicle",
+              "0x0d": "close_window",
+              "0x0e": "window_click",
+              "0x0f": "transaction",
+              "0x10": "set_creative_slot",
+              "0x11": "enchant_item",
+              "0x12": "update_sign",
+              "0x13": "abilities",
+              "0x14": "tab_complete",
+              "0x15": "settings",
+              "0x16": "client_command",
+              "0x17": "custom_payload",
+              "0x18": "spectate",
+              "0x19": "resource_pack_receive"
+            }
+          }
+        ]};
+        let mut parsed_types = IndexMap::default();
+
+        let _got = parse_type(&doc, &mut parsed_types).unwrap();
+    }
+
+    #[test]
+    fn parse_switch() {
+        let doc = json! {[
+              "switch",
+              {
+                "compareTo": "blockId",
+                "fields": {"-1": "void"},
+                "default": ["container", []]
+              }
+        ]};
+        let mut parsed_types = IndexMap::default();
+        let should_be = Type::Switch(Switch {
+            compare_to: "blockId".into(),
+            variants: vec![(-1, Type::Named("void".into()))]
+                .into_iter()
+                .collect(),
+            default: Some(Box::new(Type::Container(Container {
+                fields: Vec::new(),
+            }))),
         });
 
         let got = parse_type(&doc, &mut parsed_types).unwrap();
