@@ -1,4 +1,4 @@
-use std::panic::Location;
+use std::{fmt::Display, panic::Location};
 
 use serde_json::{map::Map, Value};
 
@@ -43,8 +43,10 @@ impl ParseError {
     }
 
     #[track_caller]
-    pub(crate) fn missing_field(name: impl Into<String>) -> Self {
-        ParseError::new(ErrorKind::MissingField { name: name.into() })
+    pub(crate) fn missing_field(name: impl Display) -> Self {
+        ParseError::new(ErrorKind::MissingField {
+            name: name.to_string(),
+        })
     }
 }
 
@@ -131,15 +133,28 @@ impl ValueExt for Value {
 
 pub(crate) trait OptionExt<T> {
     #[track_caller]
-    fn or_missing_field(self, name: impl Into<String>)
-        -> Result<T, ParseError>;
+    fn or_missing_field(self, name: impl Display) -> Result<T, ParseError>;
 }
 
 impl<T> OptionExt<T> for Option<T> {
-    fn or_missing_field(
-        self,
-        name: impl Into<String>,
-    ) -> Result<T, ParseError> {
+    fn or_missing_field(self, name: impl Display) -> Result<T, ParseError> {
         self.ok_or_else(|| ParseError::missing_field(name))
+    }
+}
+
+pub(crate) trait Lookup<T, K> {
+    #[track_caller]
+    fn lookup(&self, key: K) -> Result<&T, ParseError>;
+}
+
+impl<'a> Lookup<Value, &'a str> for Map<String, Value> {
+    fn lookup(&self, key: &'a str) -> Result<&Value, ParseError> {
+        self.get(key).or_missing_field(key)
+    }
+}
+
+impl Lookup<Value, usize> for Vec<Value> {
+    fn lookup(&self, key: usize) -> Result<&Value, ParseError> {
+        self.get(key).or_missing_field(key)
     }
 }

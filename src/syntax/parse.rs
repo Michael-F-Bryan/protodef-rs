@@ -1,5 +1,5 @@
 use super::{
-    errors::{OptionExt, ResultExt, ValueExt},
+    errors::{Lookup, ResultExt, ValueExt},
     Container, ErrorKind, Field, ParseError, Protocol, Switch, Type,
 };
 use indexmap::IndexMap;
@@ -96,12 +96,11 @@ fn parse_field(
 ) -> Result<Field, ParseError> {
     let value = value.expect_object()?;
 
-    let ty = value.get("type").or_missing_field("type")?;
+    let ty = value.lookup("type")?;
     let ty = parse_type(ty, parsed_types).with_context("type")?;
 
     let name = value
-        .get("name")
-        .or_missing_field("name")?
+        .lookup("name")?
         .expect_string()
         .with_context("name")?
         .clone();
@@ -125,8 +124,7 @@ fn parse_switch(
     let args = args[0].expect_object()?;
 
     let compare_to = args
-        .get("compareTo")
-        .or_missing_field("compareTo")?
+        .lookup("compareTo")?
         .expect_string()
         .with_context("compareTo")?
         .clone();
@@ -134,9 +132,8 @@ fn parse_switch(
     let mut variants = IndexMap::new();
 
     for (key, value) in args
-        .get("fields")
-        .or_missing_field("fields")
-        .and_then(|f| f.expect_object())
+        .lookup("fields")?
+        .expect_object()
         .with_context("fields")?
     {
         let ty = parse_type(value, parsed_types)
