@@ -24,14 +24,14 @@ pub struct Container {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Field {
-    pub name: String,
+    pub name: Option<String>,
     pub ty: Type,
 }
 
 impl Field {
     pub fn new(name: impl Into<String>, ty: Type) -> Self {
         Field {
-            name: name.into(),
+            name: Some(name.into()),
             ty,
         }
     }

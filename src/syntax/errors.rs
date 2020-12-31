@@ -179,7 +179,10 @@ pub(crate) trait OptionExt<T> {
 
 impl<T> OptionExt<T> for Option<T> {
     fn or_missing_field(self, name: impl Display) -> Result<T, ParseError> {
-        self.ok_or_else(|| ParseError::missing_field(name))
+        match self {
+            Some(value) => Ok(value),
+            None => Err(ParseError::missing_field(name)),
+        }
     }
 }
 

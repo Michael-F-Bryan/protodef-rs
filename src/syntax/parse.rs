@@ -66,6 +66,9 @@ fn parse_type(ty: &Value) -> Result<Type, ParseError> {
         "collection" => todo!(),
         "mapper" => parse_mapper(arg).map(Type::Mapper).with_context("mapper"),
 
+        "entityMetadataLoop" => {
+            Ok(Type::Named("TODO: entityMetadataLoop".into()))
+        },
         _ => Err(ParseError::unknown_function(function_name)),
     }
 }
@@ -89,17 +92,16 @@ fn parse_field(value: &Value) -> Result<Field, ParseError> {
     let ty = value.lookup("type")?;
     let ty = parse_type(ty).with_context("type")?;
 
-    let name = value.lookup_string("name")?.clone();
+    let name = if value.get("anon").is_some() {
+        None
+    } else {
+        Some(value.lookup_string("name")?.clone())
+    };
 
     Ok(Field { name, ty })
 }
 
 fn parse_switch(arg: &Value) -> Result<Switch, ParseError> {
-    //   {
-    //     "compareTo": "blockId",
-    //     "fields": {"-1": "void"},
-    //     "default": ["container", []]
-    //   }
     let args = arg.expect_object()?;
 
     let compare_to = args.lookup_string("compareTo")?.clone();
@@ -115,13 +117,11 @@ fn parse_switch(arg: &Value) -> Result<Switch, ParseError> {
         variants.insert(key, ty);
     }
 
-    let default = match args.get("default") {
-        Some(d) => {
-            let default = parse_type(d).with_context("default")?;
-            Some(Box::new(default))
-        },
-        None => None,
-    };
+    let default = args
+        .get("default")
+        .map(parse_type)
+        .transpose()?
+        .map(Box::new);
 
     Ok(Switch {
         compare_to,
@@ -336,18 +336,15 @@ mod tests {
         };
         let should_be = Type::Container(Container {
             fields: vec![
-                Field {
-                    name: "name".into(),
-                    ty: Type::Named("varint".into()),
-                },
-                Field {
-                    name: "params".into(),
-                    ty: Type::Switch(Switch {
+                Field::new("name", Type::Named("varint".into())),
+                Field::new(
+                    "params",
+                    Type::Switch(Switch {
                         compare_to: "name".into(),
                         variants: IndexMap::new(),
                         default: None,
                     }),
-                },
+                ),
             ],
         });
 
@@ -399,6 +396,37 @@ mod tests {
         });
 
         let got = parse_type(&doc).unwrap();
+
+        assert_eq!(got, should_be);
+    }
+
+    #[test]
+    fn parse_anon_field() {
+        let doc = json! {{
+          "anon": true,
+          "type": [
+            "bitfield",
+            [
+              {
+                "name": "type",
+                "size": 3,
+                "signed": false
+              }
+            ]
+          ]
+        }};
+        let should_be = Field {
+            name: None,
+            ty: Type::BitFields(BitFields {
+                fields: vec![BitField {
+                    name: "type".into(),
+                    size: 3,
+                    signed: false,
+                }],
+            }),
+        };
+
+        let got = parse_field(&doc).unwrap();
 
         assert_eq!(got, should_be);
     }
