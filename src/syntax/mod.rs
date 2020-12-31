@@ -33,10 +33,10 @@
 //! # Result::<(), protodef::syntax::ParseError>::Ok(())
 //! ```
 
+mod ast;
 mod errors;
 mod parse;
-mod types;
 
+pub use ast::*;
 pub use errors::{ErrorKind, ParseError};
 pub use parse::parse;
-pub use types::*;
