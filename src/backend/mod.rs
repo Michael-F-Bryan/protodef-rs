@@ -1,3 +1,5 @@
+//! Code generation.
+
 use crate::lowering::CompilationUnit;
 use proc_macro2::TokenStream;
 

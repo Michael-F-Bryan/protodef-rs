@@ -12,7 +12,6 @@ pub enum Type {
     Container(Container),
     Switch(Switch),
     BitFields(BitFields),
-    Collection(Collection),
     LengthPrefixedString { count_type: Box<Type> },
     Mapper(Mapper),
 }
@@ -55,9 +54,6 @@ pub struct BitField {
     pub size: usize,
     pub signed: bool,
 }
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct Collection;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Mapper;

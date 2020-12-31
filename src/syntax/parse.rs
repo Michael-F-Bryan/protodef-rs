@@ -63,7 +63,6 @@ fn parse_type(ty: &Value) -> Result<Type, ParseError> {
             .map(Type::BitFields)
             .with_context("bitfield"),
         "pstring" => parse_length_prefixed_string(arg).with_context("pstring"),
-        "collection" => todo!(),
         "mapper" => parse_mapper(arg).map(Type::Mapper).with_context("mapper"),
 
         "entityMetadataLoop" => {

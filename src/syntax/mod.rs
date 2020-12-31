@@ -1,6 +1,7 @@
-//! Code for working with the `protocol.json` AST.
+//! Code for working with the ProtoDef AST, a near-literal interpretation of
+//! the `protocol.json` file.
 //!
-//! Your main entrypoint into the AST will be via the [`parse()`] function.
+//! You are probably looking for the [`parse()`] function.
 //!
 //! ```rust
 //! let document = serde_json::json!({
