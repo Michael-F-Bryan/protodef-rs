@@ -6,6 +6,7 @@ use super::{
 use indexmap::IndexMap;
 use serde_json::{Map, Value};
 
+/// Parses a JSON document into a [`Protocol`].
 pub fn parse(document: &Value) -> Result<Protocol, ParseError> {
     parse_document(document)
 }
