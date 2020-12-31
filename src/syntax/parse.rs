@@ -10,32 +10,31 @@ pub fn parse(document: Value) -> Result<Protocol, ParseError> {
 }
 
 fn parse_document(document: Value) -> Result<Protocol, ParseError> {
-    let mut protocol = Protocol::default();
+    let types = match document.get("types") {
+        Some(types) => {
+            let types = types.expect_object().with_context("types")?;
+            parse_types(types).with_context("types")?
+        },
+        None => IndexMap::new(),
+    };
 
-    if let Some(types) = document.get("types") {
-        let types = types.expect_object().with_context("types")?;
-        parse_types(types, &mut protocol.types).with_context("types")?;
-    }
-
-    Ok(protocol)
+    Ok(Protocol { types })
 }
 
 fn parse_types(
     types: &Map<String, Value>,
-    parsed_types: &mut IndexMap<String, Type>,
-) -> Result<(), ParseError> {
+) -> Result<IndexMap<String, Type>, ParseError> {
+    let mut parsed_types = IndexMap::new();
+
     for (name, ty) in types {
-        let parsed = parse_type(ty, parsed_types).with_context(name)?;
+        let parsed = parse_type(ty).with_context(name)?;
         parsed_types.insert(name.clone(), parsed);
     }
 
-    Ok(())
+    Ok(parsed_types)
 }
 
-fn parse_type(
-    ty: &Value,
-    parsed_types: &mut IndexMap<String, Type>,
-) -> Result<Type, ParseError> {
+fn parse_type(ty: &Value) -> Result<Type, ParseError> {
     if let Value::String(s) = ty {
         if s == "native" {
             return Ok(Type::Native);
@@ -57,17 +56,14 @@ fn parse_type(
         .with_context("function name")?;
 
     match function_name.as_str() {
-        "container" => parse_container(args, parsed_types)
+        "container" => parse_container(args)
             .map(Type::Container)
             .with_context("container"),
 
-        "switch" => parse_switch(args, parsed_types)
-            .map(Type::Switch)
-            .with_context("switch"),
+        "switch" => parse_switch(args).map(Type::Switch).with_context("switch"),
 
         "bitflags" => todo!(),
-        "pstring" => parse_length_prefixed_string(args, parsed_types)
-            .with_context("pstring"),
+        "pstring" => parse_length_prefixed_string(args).with_context("pstring"),
         "collection" => todo!(),
         "mapping" => todo!(),
 
@@ -75,43 +71,32 @@ fn parse_type(
     }
 }
 
-fn parse_container(
-    args: &[Value],
-    parsed_types: &mut IndexMap<String, Type>,
-) -> Result<Container, ParseError> {
+fn parse_container(args: &[Value]) -> Result<Container, ParseError> {
     expect_length(args, 1)?;
     let raw_fields = args[0].expect_array().with_context("fields")?;
 
     let mut fields = Vec::new();
 
     for (i, arg) in raw_fields.iter().enumerate() {
-        let field = parse_field(arg, parsed_types)
-            .with_context("field")
-            .with_context(i)?;
+        let field = parse_field(arg).with_context("field").with_context(i)?;
         fields.push(field);
     }
 
     Ok(Container { fields })
 }
 
-fn parse_field(
-    value: &Value,
-    parsed_types: &mut IndexMap<String, Type>,
-) -> Result<Field, ParseError> {
+fn parse_field(value: &Value) -> Result<Field, ParseError> {
     let value = value.expect_object()?;
 
     let ty = value.lookup("type")?;
-    let ty = parse_type(ty, parsed_types).with_context("type")?;
+    let ty = parse_type(ty).with_context("type")?;
 
     let name = value.lookup_string("name")?.clone();
 
     Ok(Field { name, ty })
 }
 
-fn parse_switch(
-    args: &[Value],
-    parsed_types: &mut IndexMap<String, Type>,
-) -> Result<Switch, ParseError> {
+fn parse_switch(args: &[Value]) -> Result<Switch, ParseError> {
     expect_length(args, 1)?;
 
     //   {
@@ -126,9 +111,7 @@ fn parse_switch(
     let mut variants = IndexMap::new();
 
     for (key, value) in args.lookup_object("fields")? {
-        let ty = parse_type(value, parsed_types)
-            .with_context("fields")
-            .with_context(key)?;
+        let ty = parse_type(value).with_context("fields").with_context(key)?;
         let key = key
             .parse::<i64>()
             .map_err(|e| ParseError::new(ErrorKind::ParseInt(e)))?;
@@ -138,8 +121,7 @@ fn parse_switch(
 
     let default = match args.get("default") {
         Some(d) => {
-            let default =
-                parse_type(d, parsed_types).with_context("default")?;
+            let default = parse_type(d).with_context("default")?;
             Some(Box::new(default))
         },
         None => None,
@@ -152,10 +134,7 @@ fn parse_switch(
     })
 }
 
-fn parse_length_prefixed_string(
-    args: &[Value],
-    parsed_types: &mut IndexMap<String, Type>,
-) -> Result<Type, ParseError> {
+fn parse_length_prefixed_string(args: &[Value]) -> Result<Type, ParseError> {
     expect_length(args, 1)?;
 
     let count_type = args[0]
@@ -163,7 +142,7 @@ fn parse_length_prefixed_string(
         .lookup("countType")
         .with_context("countType")?;
 
-    let ty = parse_type(count_type, parsed_types).with_context("countType")?;
+    let ty = parse_type(count_type).with_context("countType")?;
 
     Ok(Type::LengthPrefixedString {
         count_type: Box::new(ty),
@@ -191,10 +170,9 @@ mod tests {
     #[test]
     fn parse_native() {
         let doc = json!("native");
-        let mut parsed_types = IndexMap::default();
         let should_be = Type::Native;
 
-        let got = parse_type(&doc, &mut parsed_types).unwrap();
+        let got = parse_type(&doc).unwrap();
 
         assert_eq!(got, should_be);
     }
@@ -202,10 +180,9 @@ mod tests {
     #[test]
     fn parse_named() {
         let doc = json!("u32");
-        let mut parsed_types = IndexMap::default();
         let should_be = Type::Named("u32".into());
 
-        let got = parse_type(&doc, &mut parsed_types).unwrap();
+        let got = parse_type(&doc).unwrap();
 
         assert_eq!(got, should_be);
     }
@@ -229,7 +206,6 @@ mod tests {
             }
           ]
         ]};
-        let mut parsed_types = IndexMap::default();
         let should_be = Type::Container(Container {
             fields: vec![
                 Field::new("itemCount", Type::Named("i8".into())),
@@ -240,7 +216,7 @@ mod tests {
             .collect(),
         });
 
-        let got = parse_type(&doc, &mut parsed_types).unwrap();
+        let got = parse_type(&doc).unwrap();
 
         assert_eq!(got, should_be);
     }
@@ -282,9 +258,8 @@ mod tests {
             }
           }
         ]};
-        let mut parsed_types = IndexMap::default();
 
-        let _got = parse_type(&doc, &mut parsed_types).unwrap();
+        let _got = parse_type(&doc).unwrap();
     }
 
     #[test]
@@ -297,7 +272,6 @@ mod tests {
                 "default": ["container", []]
               }
         ]};
-        let mut parsed_types = IndexMap::default();
         let should_be = Type::Switch(Switch {
             compare_to: "blockId".into(),
             variants: vec![(-1, Type::Named("void".into()))]
@@ -308,7 +282,7 @@ mod tests {
             }))),
         });
 
-        let got = parse_type(&doc, &mut parsed_types).unwrap();
+        let got = parse_type(&doc).unwrap();
 
         assert_eq!(got, should_be);
     }
@@ -321,12 +295,55 @@ mod tests {
             "countType": "varint"
           }
         ]};
-        let mut parsed_types = IndexMap::default();
         let should_be = Type::LengthPrefixedString {
             count_type: Box::new(Type::Named("varint".into())),
         };
 
-        let got = parse_type(&doc, &mut parsed_types).unwrap();
+        let got = parse_type(&doc).unwrap();
+
+        assert_eq!(got, should_be);
+    }
+
+    #[test]
+    fn container_with_switch() {
+        let doc = json! { [
+          "container",
+          [
+            {
+              "name": "name",
+              "type": "varint",
+            },
+            {
+              "name": "params",
+              "type": [
+                "switch",
+                {
+                  "compareTo": "name",
+                  "fields": {}
+                }
+              ]
+            }
+          ]
+        ]
+        };
+        let should_be = Type::Container(Container {
+            fields: vec![
+                Field {
+                    name: "name".into(),
+                    ty: Type::Named("varint".into()),
+                },
+                Field {
+                    name: "params".into(),
+                    ty: Type::Switch(Switch {
+                        compare_to: "name".into(),
+                        variants: IndexMap::new(),
+                        default: None,
+                    }),
+                },
+            ],
+        });
+
+        let got = parse_type(&doc).unwrap();
 
         assert_eq!(got, should_be);
     }
