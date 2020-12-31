@@ -6,6 +6,4 @@ mod types;
 
 pub use errors::{ErrorKind, ParseError};
 pub use parse::parse;
-pub use types::{
-    BitFlags, Collection, Container, Field, Protocol, Switch, Type,
-};
+pub use types::*;

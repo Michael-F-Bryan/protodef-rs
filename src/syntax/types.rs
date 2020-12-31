@@ -11,9 +11,10 @@ pub enum Type {
     Named(String),
     Container(Container),
     Switch(Switch),
-    BitFlags(BitFlags),
+    BitFields(BitFields),
     Collection(Collection),
     LengthPrefixedString { count_type: Box<Type> },
+    Mapper(Mapper),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -44,6 +45,19 @@ pub struct Switch {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct BitFlags;
+pub struct BitFields {
+    pub fields: Vec<BitField>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct BitField {
+    pub name: String,
+    pub size: usize,
+    pub signed: bool,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Collection;
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Mapper;

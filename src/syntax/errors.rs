@@ -1,12 +1,25 @@
 use std::{fmt::Display, panic::Location};
 
-use serde_json::{map::Map, Value};
+use serde_json::{map::Map, Number, Value};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum ValueKind {
     Object,
     Array,
     String,
+    Integer,
+    Float,
+    Bool,
+}
+
+impl ValueKind {
+    pub(crate) fn for_number(n: Number) -> Self {
+        if n.is_i64() || n.is_u64() {
+            ValueKind::Integer
+        } else {
+            ValueKind::Float
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -67,7 +80,7 @@ pub enum ErrorKind {
     IncorrectArrayLength {
         expected: usize,
         found: usize,
-    }
+    },
 }
 
 pub(crate) trait ResultExt<T> {
@@ -92,6 +105,10 @@ pub(crate) trait ValueExt {
     fn expect_array(&self) -> Result<&Vec<Value>, ParseError>;
     #[track_caller]
     fn expect_string(&self) -> Result<&String, ParseError>;
+    #[track_caller]
+    fn expect_number(&self) -> Result<Number, ParseError>;
+    #[track_caller]
+    fn expect_bool(&self) -> Result<bool, ParseError>;
 }
 
 impl ValueExt for Value {
@@ -120,6 +137,26 @@ impl ValueExt for Value {
             Value::String(s) => Ok(s),
             other => Err(ParseError::incorrect_type(
                 ValueKind::String,
+                other.value_kind(),
+            )),
+        }
+    }
+
+    fn expect_number(&self) -> Result<Number, ParseError> {
+        match self {
+            Value::Number(n) => Ok(n.clone()),
+            other => Err(ParseError::new(ErrorKind::IncorrectType {
+                expected: vec![ValueKind::Integer, ValueKind::Float],
+                found: other.value_kind(),
+            })),
+        }
+    }
+
+    fn expect_bool(&self) -> Result<bool, ParseError> {
+        match self {
+            Value::Bool(b) => Ok(*b),
+            other => Err(ParseError::incorrect_type(
+                ValueKind::Bool,
                 other.value_kind(),
             )),
         }
@@ -164,6 +201,22 @@ pub(crate) trait Lookup<K> {
         K: Copy + Display,
     {
         self.lookup(key)?.expect_object().with_context(key)
+    }
+
+    #[track_caller]
+    fn lookup_number(&self, key: K) -> Result<Number, ParseError>
+    where
+        K: Copy + Display,
+    {
+        self.lookup(key)?.expect_number().with_context(key)
+    }
+
+    #[track_caller]
+    fn lookup_bool(&self, key: K) -> Result<bool, ParseError>
+    where
+        K: Copy + Display,
+    {
+        self.lookup(key)?.expect_bool().with_context(key)
     }
 }
 

@@ -1,15 +1,16 @@
 use super::{
-    errors::{Lookup, ResultExt, ValueExt},
-    Container, ErrorKind, Field, ParseError, Protocol, Switch, Type,
+    errors::{Lookup, ResultExt, ValueExt, ValueKind},
+    BitField, BitFields, Container, ErrorKind, Field, Mapper, ParseError,
+    Protocol, Switch, Type,
 };
 use indexmap::IndexMap;
 use serde_json::{Map, Value};
 
-pub fn parse(document: Value) -> Result<Protocol, ParseError> {
+pub fn parse(document: &Value) -> Result<Protocol, ParseError> {
     parse_document(document)
 }
 
-fn parse_document(document: Value) -> Result<Protocol, ParseError> {
+fn parse_document(document: &Value) -> Result<Protocol, ParseError> {
     let types = match document.get("types") {
         Some(types) => {
             let types = types.expect_object().with_context("types")?;
@@ -46,34 +47,30 @@ fn parse_type(ty: &Value) -> Result<Type, ParseError> {
     // if the type declaration isn't a string it'll be one of the fancy
     // "function" like declarations
     let array = ty.expect_array()?;
-    if array.is_empty() {
-        todo!()
-    }
+    expect_length(array, 2)?;
 
-    let (function_name, args) = array.split_first().expect("Already checked");
-    let function_name = function_name
-        .expect_string()
-        .with_context("function name")?;
+    let function_name =
+        array[0].expect_string().with_context("function_name")?;
+    let arg = &array[1];
 
     match function_name.as_str() {
-        "container" => parse_container(args)
+        "container" => parse_container(arg)
             .map(Type::Container)
             .with_context("container"),
-
-        "switch" => parse_switch(args).map(Type::Switch).with_context("switch"),
-
-        "bitflags" => todo!(),
-        "pstring" => parse_length_prefixed_string(args).with_context("pstring"),
+        "switch" => parse_switch(arg).map(Type::Switch).with_context("switch"),
+        "bitfield" => parse_bitfields(arg)
+            .map(Type::BitFields)
+            .with_context("bitfield"),
+        "pstring" => parse_length_prefixed_string(arg).with_context("pstring"),
         "collection" => todo!(),
-        "mapping" => todo!(),
+        "mapper" => parse_mapper(arg).map(Type::Mapper).with_context("mapper"),
 
         _ => Err(ParseError::unknown_function(function_name)),
     }
 }
 
-fn parse_container(args: &[Value]) -> Result<Container, ParseError> {
-    expect_length(args, 1)?;
-    let raw_fields = args[0].expect_array().with_context("fields")?;
+fn parse_container(arg: &Value) -> Result<Container, ParseError> {
+    let raw_fields = arg.expect_array().with_context("fields")?;
 
     let mut fields = Vec::new();
 
@@ -96,15 +93,13 @@ fn parse_field(value: &Value) -> Result<Field, ParseError> {
     Ok(Field { name, ty })
 }
 
-fn parse_switch(args: &[Value]) -> Result<Switch, ParseError> {
-    expect_length(args, 1)?;
-
+fn parse_switch(arg: &Value) -> Result<Switch, ParseError> {
     //   {
     //     "compareTo": "blockId",
     //     "fields": {"-1": "void"},
     //     "default": ["container", []]
     //   }
-    let args = args[0].expect_object()?;
+    let args = arg.expect_object()?;
 
     let compare_to = args.lookup_string("compareTo")?.clone();
 
@@ -134,10 +129,8 @@ fn parse_switch(args: &[Value]) -> Result<Switch, ParseError> {
     })
 }
 
-fn parse_length_prefixed_string(args: &[Value]) -> Result<Type, ParseError> {
-    expect_length(args, 1)?;
-
-    let count_type = args[0]
+fn parse_length_prefixed_string(arg: &Value) -> Result<Type, ParseError> {
+    let count_type = arg
         .expect_object()?
         .lookup("countType")
         .with_context("countType")?;
@@ -148,6 +141,41 @@ fn parse_length_prefixed_string(args: &[Value]) -> Result<Type, ParseError> {
         count_type: Box::new(ty),
     })
 }
+
+fn parse_bitfields(arg: &Value) -> Result<BitFields, ParseError> {
+    let fields = arg.expect_array().with_context("fields")?;
+
+    let mut bitfields = Vec::new();
+
+    for (i, field) in fields.iter().enumerate() {
+        let field = parse_bitfield(field)
+            .with_context(i)
+            .with_context("field")?;
+        bitfields.push(field);
+    }
+
+    Ok(BitFields { fields: bitfields })
+}
+
+fn parse_bitfield(field: &Value) -> Result<BitField, ParseError> {
+    let field = field.expect_object()?;
+
+    let name = field.lookup_string("name")?.clone();
+
+    let size = field.lookup_number("size")?;
+    let size = size.as_i64().ok_or_else(|| {
+        ParseError::new(ErrorKind::IncorrectType {
+            expected: vec![ValueKind::Integer],
+            found: ValueKind::for_number(size),
+        })
+    })? as usize;
+
+    let signed = field.lookup_bool("signed")?;
+
+    Ok(BitField { name, size, signed })
+}
+
+fn parse_mapper(_arg: &Value) -> Result<Mapper, ParseError> { todo!() }
 
 #[track_caller]
 fn expect_length<T>(items: &[T], expected: usize) -> Result<(), ParseError> {
@@ -229,37 +257,16 @@ mod tests {
           {
             "type": "varint",
             "mappings": {
-              "0x00": "keep_alive",
-              "0x01": "chat",
-              "0x02": "use_entity",
-              "0x03": "flying",
-              "0x04": "position",
-              "0x05": "look",
-              "0x06": "position_look",
-              "0x07": "block_dig",
-              "0x08": "block_place",
-              "0x09": "held_item_slot",
-              "0x0a": "arm_animation",
-              "0x0b": "entity_action",
-              "0x0c": "steer_vehicle",
-              "0x0d": "close_window",
-              "0x0e": "window_click",
-              "0x0f": "transaction",
-              "0x10": "set_creative_slot",
-              "0x11": "enchant_item",
-              "0x12": "update_sign",
-              "0x13": "abilities",
-              "0x14": "tab_complete",
-              "0x15": "settings",
-              "0x16": "client_command",
-              "0x17": "custom_payload",
-              "0x18": "spectate",
-              "0x19": "resource_pack_receive"
+                "0x00": "set_protocol",
+                "0xfe": "legacy_server_list_ping"
             }
           }
         ]};
+        let should_be = Type::Mapper(Mapper);
 
-        let _got = parse_type(&doc).unwrap();
+        let got = parse_type(&doc).unwrap();
+
+        assert_eq!(got, should_be);
     }
 
     #[test]
@@ -339,6 +346,53 @@ mod tests {
                         variants: IndexMap::new(),
                         default: None,
                     }),
+                },
+            ],
+        });
+
+        let got = parse_type(&doc).unwrap();
+
+        assert_eq!(got, should_be);
+    }
+
+    #[test]
+    fn parse_bit_fields() {
+        let doc = json! {[
+          "bitfield",
+          [
+            {
+              "name": "x",
+              "size": 26,
+              "signed": true
+            },
+            {
+              "name": "y",
+              "size": 12,
+              "signed": true
+            },
+            {
+              "name": "z",
+              "size": 26,
+              "signed": true
+            }
+          ]
+        ]};
+        let should_be = Type::BitFields(BitFields {
+            fields: vec![
+                BitField {
+                    name: "x".into(),
+                    size: 26,
+                    signed: true,
+                },
+                BitField {
+                    name: "y".into(),
+                    size: 12,
+                    signed: true,
+                },
+                BitField {
+                    name: "z".into(),
+                    size: 26,
+                    signed: true,
                 },
             ],
         });
