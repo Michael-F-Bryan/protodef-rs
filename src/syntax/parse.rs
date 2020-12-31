@@ -67,7 +67,8 @@ fn parse_type(ty: &Value) -> Result<Type, ParseError> {
         "mapper" => parse_mapper(arg).map(Type::Mapper).with_context("mapper"),
 
         "entityMetadataLoop" => {
-            Ok(Type::Named("TODO: entityMetadataLoop".into()))
+            // TODO: Parse "entityMetadataLoop"
+            Ok(Type::Native)
         },
         _ => Err(ParseError::unknown_function(function_name)),
     }
