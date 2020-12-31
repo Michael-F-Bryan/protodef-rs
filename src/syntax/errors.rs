@@ -9,7 +9,7 @@ pub enum ValueKind {
     String,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct ParseError {
     pub context: Vec<String>,
     pub kind: ErrorKind,
@@ -50,7 +50,7 @@ impl ParseError {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 #[non_exhaustive]
 pub enum ErrorKind {
     IncorrectType {
