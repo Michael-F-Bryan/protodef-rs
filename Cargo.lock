@@ -89,6 +89,8 @@ version = "0.1.0"
 dependencies = [
  "indexmap",
  "pretty_assertions",
+ "proc-macro2",
+ "quote",
  "serde_json",
 ]
 

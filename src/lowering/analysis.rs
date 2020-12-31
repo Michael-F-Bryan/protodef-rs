@@ -4,7 +4,7 @@ use super::{CompilationUnit, Diagnostics, Type, TypeId};
 
 /// Analyse the `protocol.json` file's AST and convert it to the corresponding
 /// Rust types.
-pub fn analyse(
+pub fn lower(
     _protocol: &crate::syntax::Protocol,
 ) -> Result<CompilationUnit, Diagnostics> {
     let mut analyser = Analyser::new();
