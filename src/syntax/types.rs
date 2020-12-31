@@ -13,6 +13,7 @@ pub enum Type {
     Switch(Switch),
     BitFlags(BitFlags),
     Collection(Collection),
+    LengthPrefixedString { count_type: Box<Type> },
 }
 
 #[derive(Debug, Clone, PartialEq)]

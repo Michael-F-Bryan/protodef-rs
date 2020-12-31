@@ -66,7 +66,8 @@ fn parse_type(
             .with_context("switch"),
 
         "bitflags" => todo!(),
-        "pstring" => todo!(),
+        "pstring" => parse_length_prefixed_string(args, parsed_types)
+            .with_context("pstring"),
         "collection" => todo!(),
         "mapping" => todo!(),
 
@@ -78,9 +79,7 @@ fn parse_container(
     args: &[Value],
     parsed_types: &mut IndexMap<String, Type>,
 ) -> Result<Container, ParseError> {
-    if args.is_empty() {
-        todo!();
-    }
+    expect_length(args, 1)?;
     let raw_fields = args[0].expect_array().with_context("fields")?;
 
     let mut fields = Vec::new();
@@ -113,9 +112,7 @@ fn parse_switch(
     args: &[Value],
     parsed_types: &mut IndexMap<String, Type>,
 ) -> Result<Switch, ParseError> {
-    if args.is_empty() {
-        todo!();
-    }
+    expect_length(args, 1)?;
 
     //   {
     //     "compareTo": "blockId",
@@ -153,6 +150,36 @@ fn parse_switch(
         variants,
         default,
     })
+}
+
+fn parse_length_prefixed_string(
+    args: &[Value],
+    parsed_types: &mut IndexMap<String, Type>,
+) -> Result<Type, ParseError> {
+    expect_length(args, 1)?;
+
+    let count_type = args[0]
+        .expect_object()?
+        .lookup("countType")
+        .with_context("countType")?;
+
+    let ty = parse_type(count_type, parsed_types).with_context("countType")?;
+
+    Ok(Type::LengthPrefixedString {
+        count_type: Box::new(ty),
+    })
+}
+
+#[track_caller]
+fn expect_length<T>(items: &[T], expected: usize) -> Result<(), ParseError> {
+    if items.len() == expected {
+        Ok(())
+    } else {
+        Err(ParseError::new(ErrorKind::IncorrectArrayLength {
+            expected,
+            found: items.len(),
+        }))
+    }
 }
 
 #[cfg(test)]
@@ -280,6 +307,24 @@ mod tests {
                 fields: Vec::new(),
             }))),
         });
+
+        let got = parse_type(&doc, &mut parsed_types).unwrap();
+
+        assert_eq!(got, should_be);
+    }
+
+    #[test]
+    fn parse_pstring() {
+        let doc = json! {[
+          "pstring",
+          {
+            "countType": "varint"
+          }
+        ]};
+        let mut parsed_types = IndexMap::default();
+        let should_be = Type::LengthPrefixedString {
+            count_type: Box::new(Type::Named("varint".into())),
+        };
 
         let got = parse_type(&doc, &mut parsed_types).unwrap();
 

@@ -64,6 +64,10 @@ pub enum ErrorKind {
         name: String,
     },
     ParseInt(std::num::ParseIntError),
+    IncorrectArrayLength {
+        expected: usize,
+        found: usize,
+    }
 }
 
 pub(crate) trait ResultExt<T> {
