@@ -20,13 +20,31 @@ pub enum Type {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Struct;
+pub struct Struct {
+    pub fields: Vec<Field>,
+}
+
+/// A [`Struct`] field.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Field {
+    pub name: String,
+    pub ty: TypeId,
+}
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Enum;
+pub struct Enum {
+    pub compare_to: String,
+    pub variants: Vec<Variant>,
+}
+
+/// A [`Enum`] variant.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Variant {}
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct BitFields;
+pub struct BitFields {
+    pub fields: Vec<crate::syntax::BitField>,
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct LengthPrefixedString {

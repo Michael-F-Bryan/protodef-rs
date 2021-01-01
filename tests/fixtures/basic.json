@@ -1,0 +1,27 @@
+{
+  "types": {
+    "varint": "native",
+    "pstring": "native",
+    "i8": "native",
+    "i16": "native",
+    "string": [
+      "pstring",
+      {
+        "countType": "varint"
+      }
+    ],
+    "items": [
+      "container",
+      [
+        {
+          "name": "itemCount",
+          "type": "i8"
+        },
+        {
+          "name": "itemDamage",
+          "type": "i16"
+        }
+      ]
+    ]
+  }
+}

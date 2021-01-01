@@ -1,14 +1,24 @@
+use crate::{
+    lowering::{CompilationUnit, Diagnostics, Type, TypeId},
+    syntax,
+};
 use std::collections::HashMap;
 
-use super::{CompilationUnit, Diagnostics, Type, TypeId};
+use super::{BitFields, Field, LengthPrefixedString, Struct};
 
 /// Analyse the `protocol.json` file's AST and convert it to the corresponding
 /// Rust types.
 pub fn lower(
-    _protocol: &crate::syntax::Protocol,
+    protocol: &crate::syntax::Protocol,
 ) -> Result<CompilationUnit, Diagnostics> {
     let mut analyser = Analyser::new();
-    todo!()
+
+    for (name, ty) in &protocol.types {
+        let type_id = analyser.visit_type(ty);
+        analyser.register_name(name, type_id);
+    }
+
+    analyser.finalise()
 }
 
 #[derive(Debug, Clone)]
@@ -40,5 +50,120 @@ impl Analyser {
 
     fn register_name(&mut self, name: impl Into<String>, type_id: TypeId) {
         self.named_types.insert(name.into(), type_id);
+    }
+
+    fn lookup_by_name(&self, name: &str) -> Option<TypeId> {
+        self.named_types.get(name).copied()
+    }
+
+    fn finalise(self) -> Result<CompilationUnit, Diagnostics> {
+        let Analyser {
+            types,
+            named_types,
+            diagnostics,
+            ..
+        } = self;
+
+        if diagnostics.all_diagnostics().is_empty() {
+            Ok(CompilationUnit { types, named_types })
+        } else {
+            Err(diagnostics)
+        }
+    }
+}
+
+impl Analyser {
+    fn visit_type(&mut self, ty: &syntax::Type) -> TypeId {
+        match ty {
+            syntax::Type::Native => self.add_type(Type::Native),
+            syntax::Type::Named(name) => {
+                self.lookup_by_name(name).unwrap_or(TypeId::ERROR)
+            },
+            syntax::Type::Container(c) => self.visit_container(c),
+            syntax::Type::Switch(s) => self.visit_switch(s),
+            syntax::Type::BitFields(b) => self.visit_bitfields(b),
+            syntax::Type::LengthPrefixedString { count_type } => {
+                let count_type = self.visit_type(count_type);
+                self.add_type(Type::LengthPrefixedString(
+                    LengthPrefixedString { count_type },
+                ))
+            },
+            syntax::Type::Mapper(m) => self.visit_mapper(m),
+        }
+    }
+
+    fn visit_container(&mut self, container: &syntax::Container) -> TypeId {
+        let mut fields = Vec::new();
+
+        for field in &container.fields {
+            match &field.ty {
+                syntax::Type::Switch(_) => todo!("Handle switch fields"),
+                other => {
+                    let ty = self.visit_type(other);
+
+                    match &field.name {
+                        Some(name) => fields.push(Field {
+                            name: name.clone(),
+                            ty,
+                        }),
+                        None => todo!("Handle anonymous non-switch structs by flattening them"),
+                    }
+                },
+            }
+        }
+
+        self.add_type(Type::Struct(Struct { fields }))
+    }
+
+    fn visit_switch(&mut self, _switch: &syntax::Switch) -> TypeId { todo!() }
+
+    fn visit_bitfields(&mut self, bitfields: &syntax::BitFields) -> TypeId {
+        self.add_type(Type::BitFields(BitFields {
+            fields: bitfields.fields.clone(),
+        }))
+    }
+
+    fn visit_mapper(&mut self, _mapper: &syntax::Mapper) -> TypeId { todo!() }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn analyse_simple_struct() {
+        let mut analyser = Analyser::new();
+        let int = analyser.add_type(Type::Native);
+        analyser.register_name("u32", int);
+
+        let src = syntax::Container {
+            fields: vec![
+                syntax::Field {
+                    name: Some("first".into()),
+                    ty: syntax::Type::Named("u32".into()),
+                },
+                syntax::Field {
+                    name: Some("second".into()),
+                    ty: syntax::Type::Named("u32".into()),
+                },
+            ],
+        };
+        let should_be = Type::Struct(Struct {
+            fields: vec![
+                Field {
+                    name: "first".into(),
+                    ty: int,
+                },
+                Field {
+                    name: "second".into(),
+                    ty: int,
+                },
+            ],
+        });
+
+        let got = analyser.visit_container(&src);
+
+        assert!(!got.is_error());
+        assert_eq!(analyser.types[&got], should_be);
     }
 }
