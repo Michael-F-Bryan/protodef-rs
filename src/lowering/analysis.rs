@@ -1,10 +1,12 @@
+use indexmap::IndexMap;
+
 use crate::{
     lowering::{CompilationUnit, Diagnostics, Type, TypeId},
     syntax,
 };
 use std::collections::HashMap;
 
-use super::{BitFields, Field, LengthPrefixedString, Struct};
+use super::{BitFields, Diagnostic, Field, LengthPrefixedString, Struct};
 
 /// Analyse the `protocol.json` file's AST and convert it to the corresponding
 /// Rust types.
@@ -23,8 +25,8 @@ pub fn lower(
 
 #[derive(Debug, Clone)]
 struct Analyser {
-    types: HashMap<TypeId, Type>,
-    named_types: HashMap<String, TypeId>,
+    types: IndexMap<TypeId, Type>,
+    named_types: IndexMap<String, TypeId>,
     last_id: TypeId,
     diagnostics: Diagnostics,
 }
@@ -32,8 +34,8 @@ struct Analyser {
 impl Analyser {
     fn new() -> Self {
         Analyser {
-            types: HashMap::new(),
-            named_types: HashMap::new(),
+            types: IndexMap::new(),
+            named_types: IndexMap::new(),
             last_id: TypeId::ERROR,
             diagnostics: Diagnostics::default(),
         }
@@ -76,8 +78,13 @@ impl Analyser {
     fn visit_type(&mut self, ty: &syntax::Type) -> TypeId {
         match ty {
             syntax::Type::Native => self.add_type(Type::Native),
-            syntax::Type::Named(name) => {
-                self.lookup_by_name(name).unwrap_or(TypeId::ERROR)
+            syntax::Type::Named(name) => match self.lookup_by_name(name) {
+                Some(id) => id,
+                None => {
+                    self.diagnostics
+                        .push(Diagnostic::MissingName { name: name.clone() });
+                    TypeId::ERROR
+                },
             },
             syntax::Type::Container(c) => self.visit_container(c),
             syntax::Type::Switch(s) => self.visit_switch(s),

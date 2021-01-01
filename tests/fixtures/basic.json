@@ -22,6 +22,15 @@
           "type": "i16"
         }
       ]
+    ],
+    "bulk_items": [
+      "container",
+      [
+        {
+          "name": "items",
+          "type": "items"
+        }
+      ]
     ]
   }
 }

@@ -39,5 +39,9 @@ fn basic() {
     });
     assert_eq!(analysed.types[&items_id], items_should_be);
 
-    // let _rust_code = protodef::backend::generate_rust(&analysed).to_string();
+    let tokens = protodef::backend::generate_rust(&analysed);
+
+    let formatted = protodef::backend::rustfmt(&tokens)
+        .unwrap_or_else(|_| tokens.to_string());
+    println!("{}", formatted);
 }

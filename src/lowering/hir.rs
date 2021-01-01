@@ -3,10 +3,12 @@ use std::{
     fmt::{self, Debug, Formatter},
 };
 
+use indexmap::IndexMap;
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct CompilationUnit {
-    pub types: HashMap<TypeId, Type>,
-    pub named_types: HashMap<String, TypeId>,
+    pub types: IndexMap<TypeId, Type>,
+    pub named_types: IndexMap<String, TypeId>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -70,6 +72,10 @@ impl TypeId {
     }
 
     pub(crate) const fn next(self) -> Self { TypeId(self.0 + 1) }
+
+    pub(crate) fn unique_name(self) -> String {
+        format!("AnonymousType{}", self.0)
+    }
 }
 
 impl Debug for TypeId {
