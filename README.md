@@ -6,6 +6,13 @@
 
 A Rust code generator for the [ProtoDef][proto] protocol specification format.
 
+This project is split into three pieces:
+
+- `protodef-core` - core abstractions and types used by ProtoDef-generated code
+- `protodef-codegen` - a tool for converting a `protocol.json` into Rust types
+- `protodef-cli` - a helper for invoking `protodef-codegen` on a single
+  `protocol.json` file
+
 ## License
 
 This project is licensed under either of

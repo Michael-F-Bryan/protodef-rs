@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["Michael-F-Bryan <michaelfbryan@gmail.com>"]
 edition = "2018"
 publish = false
+description = "Core abstractions and types used by ProtoDef-generated code."
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
