@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["DeserializeError","Any errors that can occur in [`Deserialize::deserialize()`]."]],"mod":[["native","Builtin types which get special treatment by the codegen tool."]],"trait":[["Deserialize","Deserialize something from its binary form."]]});

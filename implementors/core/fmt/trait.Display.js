@@ -1,0 +1,7 @@
+(function() {var implementors = {};
+implementors["proc_macro2"] = [{"text":"impl Display for TokenStream","synthetic":false,"types":[]},{"text":"impl Display for LexError","synthetic":false,"types":[]},{"text":"impl Display for TokenTree","synthetic":false,"types":[]},{"text":"impl Display for Group","synthetic":false,"types":[]},{"text":"impl Display for Punct","synthetic":false,"types":[]},{"text":"impl Display for Ident","synthetic":false,"types":[]},{"text":"impl Display for Literal","synthetic":false,"types":[]}];
+implementors["protodef_codegen"] = [{"text":"impl Display for Diagnostics","synthetic":false,"types":[]},{"text":"impl Display for Diagnostic","synthetic":false,"types":[]},{"text":"impl Display for ParseError","synthetic":false,"types":[]}];
+implementors["protodef_core"] = [{"text":"impl Display for DeserializeError","synthetic":false,"types":[]}];
+implementors["serde"] = [{"text":"impl Display for Error","synthetic":false,"types":[]},{"text":"impl&lt;'a&gt; Display for Unexpected&lt;'a&gt;","synthetic":false,"types":[]},{"text":"impl&lt;'a&gt; Display for dyn Expected + 'a","synthetic":false,"types":[]}];
+implementors["serde_json"] = [{"text":"impl Display for Error","synthetic":false,"types":[]},{"text":"impl Display for Value","synthetic":false,"types":[]},{"text":"impl Display for Number","synthetic":false,"types":[]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

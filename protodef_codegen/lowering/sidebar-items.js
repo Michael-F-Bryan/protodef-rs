@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["Diagnostic",""],["Type",""],["Variant","A [`Enum`] variant."]],"fn":[["lower","Analyse the `protocol.json` file's AST and convert it to the corresponding Rust types."]],"struct":[["BitFields",""],["CompilationUnit",""],["Diagnostics",""],["Enum",""],["Field","A [`Struct`] field."],["LengthPrefixedString",""],["Struct",""],["TypeId",""]]});

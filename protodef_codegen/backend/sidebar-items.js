@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["generate_rust","Generate Rust bindings for the types in a particular [`CompilationUnit`]."],["rustfmt","Use `rustfmt` to correctly format some Rust code."]]});

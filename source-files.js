@@ -1,0 +1,14 @@
+var N = null;var sourcesIndex = {};
+sourcesIndex["hashbrown"] = {"name":"","dirs":[{"name":"external_trait_impls","files":["mod.rs"]},{"name":"raw","files":["bitmask.rs","mod.rs","sse2.rs"]}],"files":["lib.rs","macros.rs","map.rs","scopeguard.rs","set.rs"]};
+sourcesIndex["indexmap"] = {"name":"","dirs":[{"name":"map","dirs":[{"name":"core","files":["raw.rs"]}],"files":["core.rs"]}],"files":["equivalent.rs","lib.rs","macros.rs","map.rs","mutable_keys.rs","set.rs","util.rs"]};
+sourcesIndex["itoa"] = {"name":"","files":["lib.rs"]};
+sourcesIndex["proc_macro2"] = {"name":"","files":["detection.rs","fallback.rs","lib.rs","marker.rs","parse.rs","wrapper.rs"]};
+sourcesIndex["protodef_cli"] = {"name":"","files":["main.rs"]};
+sourcesIndex["protodef_codegen"] = {"name":"","dirs":[{"name":"backend","files":["mod.rs"]},{"name":"lowering","files":["analysis.rs","diagnostics.rs","hir.rs","mod.rs"]},{"name":"syntax","files":["ast.rs","errors.rs","mod.rs","parse.rs"]}],"files":["lib.rs"]};
+sourcesIndex["protodef_core"] = {"name":"","files":["lib.rs","native.rs"]};
+sourcesIndex["quote"] = {"name":"","files":["ext.rs","format.rs","ident_fragment.rs","lib.rs","runtime.rs","spanned.rs","to_tokens.rs"]};
+sourcesIndex["ryu"] = {"name":"","dirs":[{"name":"buffer","files":["mod.rs"]},{"name":"pretty","files":["exponent.rs","mantissa.rs","mod.rs"]}],"files":["common.rs","d2s.rs","d2s_full_table.rs","d2s_intrinsics.rs","digit_table.rs","f2s.rs","f2s_intrinsics.rs","lib.rs"]};
+sourcesIndex["serde"] = {"name":"","dirs":[{"name":"de","files":["from_primitive.rs","ignored_any.rs","impls.rs","mod.rs","utf8.rs","value.rs"]},{"name":"private","files":["de.rs","macros.rs","mod.rs","ser.rs"]},{"name":"ser","files":["fmt.rs","impls.rs","impossible.rs","mod.rs"]}],"files":["export.rs","integer128.rs","lib.rs","macros.rs"]};
+sourcesIndex["serde_json"] = {"name":"","dirs":[{"name":"features_check","files":["mod.rs"]},{"name":"io","files":["mod.rs"]},{"name":"value","files":["de.rs","from.rs","index.rs","mod.rs","partial_eq.rs","ser.rs"]}],"files":["de.rs","error.rs","iter.rs","lib.rs","macros.rs","map.rs","number.rs","read.rs","ser.rs"]};
+sourcesIndex["unicode_xid"] = {"name":"","files":["lib.rs","tables.rs"]};
+createSourceSidebar();

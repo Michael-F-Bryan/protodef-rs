@@ -1,0 +1,1 @@
+initSidebarItems({"mod":[["backend","Code generation."],["lowering","Lowering from the `protocol.json` AST to their equivalent Rust types."],["syntax","Code for working with the ProtoDef AST, a near-literal interpretation of the `protocol.json` file."]]});
