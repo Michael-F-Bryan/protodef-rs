@@ -7,9 +7,9 @@
 //! let src = include_str!("../tests/fixtures/protocol.json");
 //!
 //! let json = serde_json::from_str(src).unwrap();
-//! let parsed = protodef::syntax::parse(&json).unwrap();
-//! let analysed = protodef::lowering::lower(&parsed).unwrap();
-//! let rust_code = protodef::backend::generate_rust(&analysed);
+//! let parsed = protodef_codegen::syntax::parse(&json).unwrap();
+//! let analysed = protodef_codegen::lowering::lower(&parsed).unwrap();
+//! let rust_code = protodef_codegen::backend::generate_rust(&analysed);
 //!
 //! println!("{}", rust_code);
 //! ```

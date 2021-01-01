@@ -11,11 +11,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     let src = std::fs::read_to_string(&filename)?;
 
     let json = serde_json::from_str(&src)?;
-    let parsed = protodef::syntax::parse(&json)?;
-    let analysed = protodef::lowering::lower(&parsed)?;
-    let tokens = protodef::backend::generate_rust(&analysed);
+    let parsed = protodef_codegen::syntax::parse(&json)?;
+    let analysed = protodef_codegen::lowering::lower(&parsed)?;
+    let tokens = protodef_codegen::backend::generate_rust(&analysed);
 
-    let formatted = protodef::backend::rustfmt(&tokens)
+    let formatted = protodef_codegen::backend::rustfmt(&tokens)
         .unwrap_or_else(|_| tokens.to_string());
 
     println!("{}", formatted);

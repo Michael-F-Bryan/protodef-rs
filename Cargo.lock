@@ -84,7 +84,15 @@ dependencies = [
 ]
 
 [[package]]
-name = "protodef"
+name = "protodef-cli"
+version = "0.1.0"
+dependencies = [
+ "protodef-codegen",
+ "serde_json",
+]
+
+[[package]]
+name = "protodef-codegen"
 version = "0.1.0"
 dependencies = [
  "indexmap",
@@ -93,6 +101,10 @@ dependencies = [
  "quote",
  "serde_json",
 ]
+
+[[package]]
+name = "protodef-core"
+version = "0.1.0"
 
 [[package]]
 name = "quote"

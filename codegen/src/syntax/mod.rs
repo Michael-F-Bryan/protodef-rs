@@ -27,11 +27,11 @@
 //!   }
 //! });
 //!
-//! let protocol = protodef::syntax::parse(&document)?;
+//! let protocol = protodef_codegen::syntax::parse(&document)?;
 //!
 //! assert!(protocol.types.contains_key("i64"));
 //! assert!(protocol.types.contains_key("orientation"));
-//! # Result::<(), protodef::syntax::ParseError>::Ok(())
+//! # Result::<(), protodef_codegen::syntax::ParseError>::Ok(())
 //! ```
 
 mod ast;
