@@ -1,12 +1,11 @@
-use indexmap::IndexMap;
-
 use crate::{
-    lowering::{CompilationUnit, Diagnostics, Type, TypeId},
+    lowering::{
+        BitFields, CompilationUnit, Diagnostic, Diagnostics, Field,
+        LengthPrefixedString, Struct, Type, TypeId,
+    },
     syntax,
 };
-use std::collections::HashMap;
-
-use super::{BitFields, Diagnostic, Field, LengthPrefixedString, Struct};
+use indexmap::IndexMap;
 
 /// Analyse the `protocol.json` file's AST and convert it to the corresponding
 /// Rust types.

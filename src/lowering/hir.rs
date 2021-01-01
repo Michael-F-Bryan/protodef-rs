@@ -1,9 +1,5 @@
-use std::{
-    collections::HashMap,
-    fmt::{self, Debug, Formatter},
-};
-
 use indexmap::IndexMap;
+use std::fmt::{self, Debug, Formatter};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct CompilationUnit {
@@ -18,7 +14,6 @@ pub enum Type {
     Enum(Enum),
     LengthPrefixedString(LengthPrefixedString),
     BitFields(BitFields),
-    Collection(Collection),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -51,11 +46,6 @@ pub struct BitFields {
 #[derive(Debug, Clone, PartialEq)]
 pub struct LengthPrefixedString {
     pub count_type: TypeId,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct Collection {
-    pub item_type: TypeId,
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]

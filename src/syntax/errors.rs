@@ -1,4 +1,8 @@
-use std::{fmt::Display, panic::Location};
+use std::{
+    error::Error,
+    fmt::{self, Display, Formatter},
+    panic::Location,
+};
 
 use serde_json::{map::Map, Number, Value};
 
@@ -60,6 +64,52 @@ impl ParseError {
         ParseError::new(ErrorKind::MissingField {
             name: name.to_string(),
         })
+    }
+}
+
+impl Error for ParseError {}
+
+impl Display for ParseError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        if !self.context.is_empty() {
+            let breadcrumbs = self.context.join(" > ");
+            write!(f, "At \"{}\" ", breadcrumbs)?;
+        }
+
+        match &self.kind {
+            ErrorKind::IncorrectType { expected, found } => {
+                write!(f, "incorrect type, expected ")?;
+
+                if expected.len() == 1 {
+                    write!(f, "{:?}", expected[0])?;
+                } else {
+                    let possibilities = expected
+                        .iter()
+                        .map(|v| format!("{:?}", v))
+                        .collect::<Vec<_>>()
+                        .join(", ");
+                    write!(f, "one of {}", possibilities)?;
+                }
+
+                write!(f, " but found {:?}", found)?;
+
+                Ok(())
+            },
+            ErrorKind::UnknownFunction { name } => {
+                write!(f, "unable to handle a \"{}\"", name)
+            },
+            ErrorKind::MissingField { name } => {
+                write!(f, "missing the \"{}\" field", name)
+            },
+            ErrorKind::ParseInt(_) => {
+                write!(f, "unable to parse the value as an integer")
+            },
+            ErrorKind::IncorrectArrayLength { expected, found } => write!(
+                f,
+                "incorrect array length, expected {} but found {}",
+                expected, found
+            ),
+        }
     }
 }
 

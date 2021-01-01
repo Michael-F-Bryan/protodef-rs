@@ -1,22 +1,66 @@
 //! Code generation.
 
-use crate::lowering::{CompilationUnit, TypeId};
+use crate::lowering::{CompilationUnit, Type, TypeId};
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     io::{self, Read, Write},
     process::{Child, Command, Stdio},
 };
 
+/// Generate Rust bindings for the types in a particular [`CompilationUnit`].
 pub fn generate_rust(compilation_unit: &CompilationUnit) -> TokenStream {
     let names = generate_names(compilation_unit);
+    let mut tokens = Vec::new();
 
-    compilation_unit
+    let required_imports =
+        native_types_we_need_to_import(&names, compilation_unit);
+
+    if !required_imports.is_empty() {
+        let using_statements = quote! {
+            use ::protodef_core::native::{ #(#required_imports),* };
+        };
+        tokens.push(using_statements);
+    };
+
+    let type_definitions = compilation_unit
         .types
         .iter()
-        .map(|(id, ty)| generate_type_definition(*id, ty, &names))
-        .collect()
+        .map(|(id, ty)| generate_type_definition(*id, ty, &names));
+
+    tokens.extend(type_definitions);
+
+    tokens.into_iter().collect()
+}
+
+fn native_types_we_need_to_import<'n>(
+    names: &'n HashMap<TypeId, Ident>,
+    compilation_unit: &CompilationUnit,
+) -> Vec<&'n Ident> {
+    let mut ids = HashSet::new();
+
+    for ty in compilation_unit.types.values() {
+        for member_type_id in member_types(ty) {
+            let member_type = &compilation_unit.types[&member_type_id];
+
+            if matches!(member_type, Type::Native) {
+                ids.insert(member_type_id);
+            }
+        }
+    }
+
+    ids.into_iter().map(|id| &names[&id]).collect()
+}
+
+fn member_types(ty: &Type) -> Vec<TypeId> {
+    match ty {
+        Type::Native => Vec::new(),
+        Type::Struct(s) => s.fields.iter().map(|f| f.ty).collect(),
+        Type::Enum(e) => e.variants.iter().map(|_| todo!()).collect(),
+        Type::LengthPrefixedString(s) => vec![s.count_type],
+        Type::BitFields(_) => Vec::new(),
+    }
 }
 
 fn generate_names(
@@ -63,7 +107,6 @@ fn generate_type_definition(
             }
         },
         crate::lowering::Type::BitFields(_) => todo!(),
-        crate::lowering::Type::Collection(_) => todo!(),
     }
 }
 
@@ -77,7 +120,7 @@ fn generate_struct_definition(
         let name = Ident::new(&f.name, Span::call_site());
         let type_name = &names[&f.ty];
 
-        quote! { #name: #type_name, }
+        quote! { pub #name: #type_name, }
     });
 
     quote! {
@@ -88,6 +131,7 @@ fn generate_struct_definition(
     }
 }
 
+/// Use `rustfmt` to correctly format some Rust code.
 pub fn rustfmt(tokens: &TokenStream) -> io::Result<String> {
     let Child { stdin, stdout, .. } = Command::new("rustfmt")
         .stdin(Stdio::piped())
